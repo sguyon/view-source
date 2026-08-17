@@ -1,0 +1,12 @@
+{
+  "name": "vendor-build",
+  "private": true,
+  "devDependencies": {
+    "codemirror": "^6",
+    "@codemirror/lang-html": "^6",
+    "esbuild": "^0.23"
+  },
+  "scripts": {
+    "build": "esbuild entry.js --bundle --format=esm --minify --outfile=../../vendor/codemirror.js"
+  }
+}

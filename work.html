@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://umami.guyon.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://umami.guyon.dev; base-uri 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Work — Sacha Guyon</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="description" content="Work — Sacha Guyon. Personal builds and essays, plus selected product work at Traversal, GitLab and Datadog.">
+  <script>
+    // pre-paint guard: theme only, applied before first paint (no intro on this page)
+    if (localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body class="work">
+  <header id="topbar">
+    <a id="brand" href="index.html" aria-label="Sacha Guyon — home"><span class="br">&lt;</span><span class="slash">/</span>sg<span class="br">&gt;</span></a>
+    <nav id="menu" aria-label="Site">
+      <a href="work.html" aria-current="page">Work</a>
+      <a href="about.html">About</a>
+      <button id="theme-tog" class="theme-btn" type="button" aria-label="Switch to light theme">
+        <svg class="i-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.3" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5 5l1.8 1.8M17.2 17.2L19 19
+                   M19 5l-1.8 1.8M6.8 17.2L5 19"/>
+        </svg>
+        <svg class="i-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.3" stroke-linecap="round" style="display:none">
+          <path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a7 7 0 0 0 9.7 9.7z"/>
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Work</h1>
+
+    <h2 id="playground">Playground</h2>
+    <p>Things I'm tinkering with.</p>
+
+    <ul class="entry-list">
+      <li><span class="date">2026 Aug</span>
+        <span class="title"><a href="https://github.com/sguyon/view-source" target="_blank">View Source</a> - this website</span>
+        <span class="kind">Project</span></li>
+        <li><span class="date">2026 Jun</span>
+          <span class="title"><a href="https://github.com/sguyon/catchaplane-app" target="_blank">Catch a Plane</a> - kid interactive story app</span>
+          <span class="kind">Project</span></li>  
+      <li><span class="date">2026 May</span>
+        <span class="title">
+          <a href="https://github.com/sguyon/air-quality-dashboard" target="_blank" rel="noopener">Air quality dashboard</a></span>
+        <span class="kind">Project</span></li>
+      <li><span class="date">2026 Apr</span>
+        <span class="title"><a href="https://viewsource.guyon.dev/forward-propagation.html">How an LLM call works</a></span>
+        <span class="kind">Essay</span></li>
+      <li><span class="date">2026 Apr</span>
+        <span class="title">
+          <a href="https://viewsource.guyon.dev/watching-a-transformer-think.html">LLM Transformers visualized</a></span>
+        <span class="kind">Essay</span></li>
+    </ul>
+
+    <h2 id="selected">Selected professional work</h2>
+    <p>Developer tools since 2019. Consumer apps and interactive websites before that.</p>
+
+    <ul>
+      <li><div class="co-head"><span class="date">2025–2026</span>
+        <span class="co-name">Traversal</span><span class="kind">Founding PM</span></div>
+        <ul class="products">
+          <li><span class="title">
+            <a href="https://www.traversal.com/blog/announcing-alert-intelligence" target="_blank" rel="noopener">Alert Intelligence</a></span></li>
+          <li><span class="title">
+            <a href="https://www.traversal.com/blog/introducing-production-world-model-ai-readable-model-your-entire-production-environment" target="_blank" rel="noopener">Knowledge Graph</a></span></li>
+        </ul></li>
+      <li><div class="co-head"><span class="date">2023–2025</span>
+        <span class="co-name">GitLab</span><span class="kind">Senior PM</span></div>
+        <ul class="products">
+          <li><span class="title">
+            <a href="https://docs.gitlab.com/operations/observability/" target="_blank" rel="noopener">GitLab Observability</a></span></li>
+          <li><span class="title">
+            <a href="https://docs.gitlab.com/development/cloud_connector/" target="_blank" rel="noopener">Cloud Connector (AI Gateway)</a></span></li>
+        </ul></li>
+      <li><div class="co-head"><span class="date">2019–2023</span>
+        <span class="co-name">Datadog</span><span class="kind">Senior PM</span></div>
+        <ul class="products">
+          <li><span class="title">
+            <a href="https://docs.datadoghq.com/watchdog/#proactive-alerts" target="_blank" rel="noopener">Watchdog Alerts</a></span></li>
+          <li><span class="title">
+            <a href="https://www.datadoghq.com/blog/datadog-event-management/" target="_blank" rel="noopener">Event Management</a></span></li>
+          <li><span class="title">
+            <a href="https://www.datadoghq.com/blog/datadog-mobile-app/" target="_blank" rel="noopener">On-Call mobile app</a></span></li>
+        </ul></li>
+      <li><div class="co-head"><span class="date">2017–2019</span>
+        <span class="co-name">Fueled</span><span class="kind">Lead PM</span></div>
+        <ul class="products">
+          <li><span class="title">
+            <a href="https://www.hagerty.com/media/market-trends/valuation/hagerty-hvt-insider-app-iphone-intro/" target="_blank" rel="noopener">Hagerty Insiders App</a></span></li>
+        </ul></li>
+      <li><div class="co-head"><span class="date">2014–2016</span>
+        <span class="co-name">Sparkup</span><span class="kind">Head of Product</span></div>
+        <ul class="products">
+          <li><span class="title">
+            <a href="https://sparkup.app/en/" target="_blank" rel="noopener">Interactive event platform</a></span></li>
+        </ul></li>
+      <li><div class="co-head"><span class="date">2012–2014</span>
+        <span class="co-name">Fred &amp; Farid</span><span class="kind">Head of Digital</span></div>
+        <ul class="products">
+          <li><span class="title">
+            <a href="https://www.youtube.com/watch?v=nU1zkxmL5AE" target="_blank" rel="noopener">Porsche 24h Social Race</a></span></li>
+          <li><span class="title">
+            <a href="https://thefwa.com/cases/sennheiser-momentum" target="_blank" rel="noopener">Sennheiser Momentum Duo</a></span></li>
+        </ul></li>
+    </ul>
+  </main>
+
+  <script>
+    (function () {
+      const btn = document.getElementById('theme-tog');
+      const sun = btn.querySelector('.i-sun'), moon = btn.querySelector('.i-moon');
+      function render() {
+        const light = document.documentElement.getAttribute('data-theme') === 'light';
+        sun.style.display = light ? 'none' : 'block';
+        moon.style.display = light ? 'block' : 'none';
+        const label = light ? 'Switch to dark theme' : 'Switch to light theme';
+        btn.setAttribute('aria-label', label); btn.title = label;
+      }
+      render();
+      btn.addEventListener('click', () => {
+        const root = document.documentElement;
+        const toLight = root.getAttribute('data-theme') !== 'light';
+        const apply = () => {
+          if (toLight) { root.setAttribute('data-theme', 'light'); localStorage.setItem('theme', 'light'); }
+          else { root.removeAttribute('data-theme'); localStorage.setItem('theme', 'dark'); }
+          render();
+        };
+        if (document.startViewTransition) {
+          const transition = document.startViewTransition(apply);
+          transition.ready.then(() => {
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            document.documentElement.animate({ opacity: [1, 0] },
+              { duration: 700, easing: 'ease', fill: 'forwards', pseudoElement: '::view-transition-old(root)' });
+            document.documentElement.animate({ opacity: [0, 1] },
+              { duration: 700, easing: 'ease', fill: 'forwards', pseudoElement: '::view-transition-new(root)' });
+          });
+        } else {
+          apply();
+        }
+      });
+    })();
+  </script>
+  <script defer src="https://umami.guyon.dev/script.js" data-website-id="861ab94e-3bc4-46cb-a2ba-a58fd604fedf"></script>
+  <script type="module" src="machine.js"></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://umami.guyon.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://umami.guyon.dev; base-uri 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>About — Sacha Guyon</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="description" content="About Sacha Guyon — product manager, dev tools and AI agents.">
+  <script>
+    // pre-paint guard: theme only, applied before first paint (no intro on this page)
+    if (localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body class="about">
+  <header id="topbar">
+    <a id="brand" href="index.html" aria-label="Sacha Guyon — home"><span class="br">&lt;</span><span class="slash">/</span>sg<span class="br">&gt;</span></a>
+    <nav id="menu" aria-label="Site">
+      <a href="work.html">Work</a>
+      <a href="about.html" aria-current="page">About</a>
+      <button id="theme-tog" class="theme-btn" type="button" aria-label="Switch to light theme">
+        <svg class="i-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.3" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5 5l1.8 1.8M17.2 17.2L19 19
+                   M19 5l-1.8 1.8M6.8 17.2L5 19"/>
+        </svg>
+        <svg class="i-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.3" stroke-linecap="round" style="display:none">
+          <path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a7 7 0 0 0 9.7 9.7z"/>
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Sacha Guyon</h1>
+    <p class="contact-line">
+      <a href="https://github.com/sguyon" target="_blank" rel="noopener">github</a><span class="sep">·</span>
+      <a href="https://www.linkedin.com/in/sacha" target="_blank" rel="noopener">linkedin</a><span class="sep">·</span>
+      <a href="mailto:sacha.guyon@gmail.com">email</a>
+    </p>
+    <p>I'm a product manager working on dev tools and AI agents. From France, based in
+    Brooklyn, NY. Design and engineering roots.</p>
+
+    <h2 id="site">About this site</h2>
+    <h3>View source</h3>
+    <p>This is the 2026 reboot of my personal site. It started when I found an old fork of
+    <a href="https://github.com/mrdoob/htmleditor" target="_blank" rel="noopener">htmleditor</a>
+    sitting in my GitHub — a page that shows its own source and lets you edit it live. That trick
+    always fascinated me, so I rebuilt the site around it. Every page here is editable: press
+    <kbd>/</kbd> to open the code, tweak it, watch it update. The editor also has an AI prompt
+    built in, because hey it's 2026 — who really types code anymore.</p>
+    <p>I learned a lot of what I know by reading other people's code. When I started using the
+    web I spent as much time hitting "view source" as browsing — then came open source, Linux,
+    Ruby on Rails...</p>
+    <blockquote>
+      <p>Every single web page you visited contained the code showing you how it was created.
+      The entire internet became a library of how-to guides on programming.</p>
+      <cite>— Clive Thompson, <em>Coders</em> (via
+      <a href="https://blog.jim-nielsen.com/2020/the-spirit-of-view-source/" target="_blank" rel="noopener">Jim Nielsen</a>)</cite>
+    </blockquote>
+
+    <h3>Playing with code</h3>
+    <p>The animations come from my fascination with creative coding. Demos, Processing, John Maeda,
+    Flash-era websites, and FWA: I'd spend hours playing with code just for the pleasure of
+    building something satisfying to watch move.</p>
+    <p>Then came information design, data visualization,
+    <a href="https://worrydream.com/cv/" target="_blank" rel="noopener">Bret Victor's</a>
+    <a href="https://en.wikipedia.org/wiki/Explorable_explanation" target="_blank" rel="noopener">explorable explanations</a>
+    — code that could teach, tell stories, and help people create. That got me into analytics,
+    observability and the broader dev tools space.</p>
+
+  </main>
+
+  <script>
+    (function () {
+      const btn = document.getElementById('theme-tog');
+      const sun = btn.querySelector('.i-sun'), moon = btn.querySelector('.i-moon');
+      function render() {
+        const light = document.documentElement.getAttribute('data-theme') === 'light';
+        sun.style.display = light ? 'none' : 'block';
+        moon.style.display = light ? 'block' : 'none';
+        const label = light ? 'Switch to dark theme' : 'Switch to light theme';
+        btn.setAttribute('aria-label', label); btn.title = label;
+      }
+      render();
+      btn.addEventListener('click', () => {
+        const root = document.documentElement;
+        const toLight = root.getAttribute('data-theme') !== 'light';
+        const apply = () => {
+          if (toLight) { root.setAttribute('data-theme', 'light'); localStorage.setItem('theme', 'light'); }
+          else { root.removeAttribute('data-theme'); localStorage.setItem('theme', 'dark'); }
+          render();
+        };
+        if (document.startViewTransition) {
+          const transition = document.startViewTransition(apply);
+          transition.ready.then(() => {
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            document.documentElement.animate({ opacity: [1, 0] },
+              { duration: 700, easing: 'ease', fill: 'forwards', pseudoElement: '::view-transition-old(root)' });
+            document.documentElement.animate({ opacity: [0, 1] },
+              { duration: 700, easing: 'ease', fill: 'forwards', pseudoElement: '::view-transition-new(root)' });
+          });
+        } else {
+          apply();
+        }
+      });
+    })();
+  </script>
+  <script defer src="https://umami.guyon.dev/script.js" data-website-id="861ab94e-3bc4-46cb-a2ba-a58fd604fedf"></script>
+  <script type="module" src="machine.js"></script>
+</body>
+</html>

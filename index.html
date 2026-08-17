@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://umami.guyon.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://umami.guyon.dev; base-uri 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sacha Guyon</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="description" content="Sacha Guyon — product builder, AI agents. This page is its own source.">
+  <script>
+    // pre-paint guard: theme only, applied before first paint
+    if (localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <div class="page">
+    <header id="topbar">
+      <a id="brand" href="index.html" aria-label="Sacha Guyon — home"><span class="br">&lt;</span><span class="slash">/</span>sg<span class="br">&gt;</span></a>
+      <nav id="menu" aria-label="Site">
+        <a href="work.html">Work</a>
+        <a href="about.html">About</a>
+        <button id="theme-tog" class="theme-btn" type="button" aria-label="Switch to light theme">
+          <svg class="i-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.3" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5 5l1.8 1.8M17.2 17.2L19 19
+                     M19 5l-1.8 1.8M6.8 17.2L5 19"/>
+          </svg>
+          <svg class="i-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.3" stroke-linecap="round" style="display:none">
+            <path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a7 7 0 0 0 9.7 9.7z"/>
+          </svg>
+        </button>
+      </nav>
+    </header>
+  </div>
+
+  <script>
+    (function () {
+      const btn = document.getElementById('theme-tog');
+      const sun = btn.querySelector('.i-sun'), moon = btn.querySelector('.i-moon');
+      function render() {
+        const light = document.documentElement.getAttribute('data-theme') === 'light';
+        sun.style.display = light ? 'none' : 'block';
+        moon.style.display = light ? 'block' : 'none';
+        const label = light ? 'Switch to dark theme' : 'Switch to light theme';
+        btn.setAttribute('aria-label', label); btn.title = label;
+      }
+      render();
+      btn.addEventListener('click', () => {
+        const root = document.documentElement;
+        const toLight = root.getAttribute('data-theme') !== 'light';
+        const apply = () => {
+          if (toLight) { root.setAttribute('data-theme', 'light'); localStorage.setItem('theme', 'light'); }
+          else { root.removeAttribute('data-theme'); localStorage.setItem('theme', 'dark'); }
+          render();
+        };
+        if (document.startViewTransition) {
+          const transition = document.startViewTransition(apply);
+          transition.ready.then(() => {
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            document.documentElement.animate({ opacity: [1, 0] },
+              { duration: 700, easing: 'ease', fill: 'forwards', pseudoElement: '::view-transition-old(root)' });
+            document.documentElement.animate({ opacity: [0, 1] },
+              { duration: 700, easing: 'ease', fill: 'forwards', pseudoElement: '::view-transition-new(root)' });
+          });
+        } else {
+          apply();
+        }
+      });
+    })();
+  </script>
+
+  <script>
+// ---------------------------------------------------------------------------
+// The background sketches. This page renders one of these at a time; press
+// the arrows in the placard (bottom-left) or your arrow keys to switch.
+// Every sketch is ordinary canvas code — readable here, in the page itself.
+// every sketch below has a "try editing these" block — press ` and play.
+// ---------------------------------------------------------------------------
+const ANIMS = [];
+window.ANIMS = ANIMS;
+const SHARED = {
+  makeGraph: function (w, h, n, clusters) {
+    const centers = Array.from({ length: clusters || 5 }, function (_, i) {
+      return { x: w * (0.14 + Math.random() * 0.72), y: h * (0.16 + Math.random() * 0.68), ph: i * 1.7 };
+    });
+    const nodes = Array.from({ length: n }, function () {
+      const ci = Math.floor(Math.random() * centers.length);
+      const c = centers[ci];
+      return {
+        x: Math.random() * w, y: Math.random() * h,
+        bx: (Math.random() - 0.5) * w * 0.15, by: (Math.random() - 0.5) * h * 0.22,
+        ci: ci, tx: 0, ty: 0, ph: Math.random() * 6.3, glow: 0
+      };
+    });
+    return { nodes: nodes, centers: centers };
+  },
+  drawGraph: function (ctx, N, REACH) {
+    ctx.lineWidth = 0.6;
+    for (let i = 0; i < N.length; i++) {
+      for (let j = i + 1; j < N.length; j++) {
+        const dx = N[i].x - N[j].x, dy = N[i].y - N[j].y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < REACH * REACH) {
+          const g = Math.max(N[i].glow, N[j].glow);
+          const a = (1 - Math.sqrt(d2) / REACH) * 0.28 + g * 0.45;
+          ctx.strokeStyle = 'rgba(' + THEME.line + ',' + Math.min(0.85, a).toFixed(3) + ')';
+          ctx.beginPath(); ctx.moveTo(N[i].x, N[i].y); ctx.lineTo(N[j].x, N[j].y); ctx.stroke();
+        }
+      }
+    }
+    for (const n of N) {
+      const s = 1.6 + n.glow * 2.4;
+      ctx.fillStyle = n.glow > 0.08
+        ? 'rgba(' + THEME.glow + ',' + (0.55 + n.glow * 0.45).toFixed(3) + ')'
+        : 'rgba(' + THEME.dot + ',0.78)';
+      ctx.fillRect(n.x - s / 2, n.y - s / 2, s, s);
+    }
+  }
+};
+
+// sketch: mesh
+// nodes drift through space, finding neighbors within reach. Move the cursor near them to see
+// the attention spread; click anywhere to make the constellation reform, which it otherwise
+// does on its own every REORGANIZE_EVERY frames.
+ANIMS.push({
+  id: 'mesh',
+  name: 'mesh',
+  group: 'Topology',
+  make: function () {
+    // try editing these
+    const NODES = 85;           // more = busier constellation
+    const REACH_FRAC = 0.155;  // how far apart do links appear
+    const OSCILLATE = 0.22;    // jitter amplitude per frame
+    const REORGANIZE_EVERY = 600; // frames between layout shuffles — 10s at 60fps
+    const SETTLE = 0.024;      // how quickly nodes drift into a new layout — click and timer share this
+
+    // attention gradient — quieter tuning knobs
+    const GLOW_RADIUS_FRAC = 0.28; // how far the brightening reaches around the cursor
+    const GLOW_FALLOFF = 1.6;      // higher = tighter hot spot, lower = wider soft glow
+    const IDLE_DECAY_FRAMES = 90;  // ~1.5s at 60fps of no movement before it starts fading
+    const FOCUS_EASE = 0.05;       // how gradually the whole gradient fades in and out
+
+    let N = null, centers = null;
+    let mx = null, my = null, idleFrames = 1e9, focusAmt = 0;
+    let lastReorg = 0, lastW = 0, lastH = 0, lastF = 0;
+    function reorganize(w, h) {
+      centers = Array.from({ length: 5 }, function () {
+        return { x: w * (0.12 + Math.random() * 0.76), y: h * (0.15 + Math.random() * 0.7) };
+      });
+      for (const n of N) {
+        const c = centers[Math.floor(Math.random() * centers.length)];
+        n.tx = c.x + (Math.random() - 0.5) * w * 0.16;
+        n.ty = c.y + (Math.random() - 0.5) * h * 0.24;
+      }
+    }
+    return {
+      draw: function (ctx, w, h, f) {
+        if (!N) {
+          N = Array.from({ length: NODES }, function () {
+            return { x: Math.random() * w, y: Math.random() * h, tx: 0, ty: 0, ph: Math.random() * 6.3, bright: 0 };
+          });
+          reorganize(w, h);
+        }
+        lastW = w; lastH = h; lastF = f;
+        if (f - lastReorg >= REORGANIZE_EVERY) { reorganize(w, h); lastReorg = f; }
+        ctx.fillStyle = 'rgba(' + THEME.bgRGB + ',0.28)'; ctx.fillRect(0, 0, w, h);
+        for (const n of N) {
+          n.x += (n.tx - n.x) * SETTLE + Math.sin(f * 0.01 + n.ph) * OSCILLATE;
+          n.y += (n.ty - n.y) * SETTLE + Math.cos(f * 0.012 + n.ph) * OSCILLATE;
+        }
+
+        // idleFrames only resets inside onmove — on an actual pointer move, never merely
+        // because the pointer is present — so a cursor that stops moving decays exactly like
+        // one that left the canvas (machine.js has no separate mouseleave hook to tell them apart).
+        idleFrames++;
+        const focusTarget = (mx !== null && idleFrames < IDLE_DECAY_FRAMES) ? 1 : 0;
+        focusAmt += (focusTarget - focusAmt) * FOCUS_EASE;
+        const GLOW_RADIUS = Math.min(w, h) * GLOW_RADIUS_FRAC;
+        for (const n of N) {
+          let target = 0;
+          if (mx !== null && focusAmt > 0.003) {
+            const dx = n.x - mx, dy = n.y - my, d = Math.hypot(dx, dy);
+            if (d < GLOW_RADIUS) target = Math.pow(1 - d / GLOW_RADIUS, GLOW_FALLOFF) * focusAmt;
+          }
+          n.bright += (target - n.bright) * (target > n.bright ? 0.18 : 0.07);
+        }
+
+        const REACH = Math.min(w, h) * REACH_FRAC;
+        ctx.lineWidth = 0.7;
+        for (let i = 0; i < N.length; i++) {
+          for (let j = i + 1; j < N.length; j++) {
+            const dx = N[i].x - N[j].x, dy = N[i].y - N[j].y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < REACH * REACH) {
+              const bright = Math.max(N[i].bright, N[j].bright);
+              const a = (1 - Math.sqrt(d2) / REACH) * 0.33 + bright * 0.5;
+              ctx.strokeStyle = 'rgba(' + THEME.line + ',' + Math.min(0.9, a).toFixed(3) + ')';
+              ctx.beginPath();
+              ctx.moveTo(N[i].x, N[i].y); ctx.lineTo(N[j].x, N[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+        for (const n of N) {
+          const s = 1.8 + n.bright * 2.2;
+          ctx.fillStyle = n.bright > 0.06
+            ? 'rgba(' + THEME.glow + ',' + Math.min(1, 0.55 + n.bright * 0.45).toFixed(3) + ')'
+            : 'rgba(' + THEME.dot + ',0.8)';
+          ctx.fillRect(n.x - s / 2, n.y - s / 2, s, s);
+        }
+      },
+      onmove: function (x, y) { mx = x; my = y; idleFrames = 0; },
+      // click reforms the constellation now, and the automatic one starts counting again
+      onclick: function () { if (!N) return; reorganize(lastW, lastH); lastReorg = lastF; }
+    };
+  }
+});
+// /sketch: mesh
+
+// sketch: star-map
+// stars drift in parallax; constellation lines only appear near the cursor.
+// click anywhere to send a ripple through the field.
+ANIMS.push({
+  id: 'star-map',
+  name: 'stars',
+  group: 'Topology',
+  make: function () {
+    // try editing these — baseline values at REF below; star count and every pixel distance
+    // scale with the actual canvas, so the sky reads equally full at any window size. Unlike
+    // the other sketches, REF here is a large desktop window, not the small design card: the
+    // density and cursor reach were live-tuned at that size, so the knobs read true there
+    const STAR_COUNT = 1000;    // sky density at REF — scales with canvas area (bigger window = more stars)
+    const DRIFT_SPEED = 0.10;   // parallax speed, scaled per star by depth (not canvas-scaled)
+    const LINK_REACH = 167;     // pixel distance for two stars to be link-eligible, at REF — scales with canvas size
+    const CURSOR_REACH = 340;   // radius around the cursor where links and nearby stars brighten, at REF — scales with canvas size
+    const CURSOR_FALLOFF = 1.6; // shape of that brightening falloff — higher = tighter hot spot, lower = wider soft glow (same idea as mesh's cursor glow)
+    const ROAM_SPEED = 0.0018;  // how fast the auto-roaming highlight wanders when no cursor is on the canvas —
+                                 // a slow drift you notice has moved, not something you watch moving
+    const IDLE_THRESHOLD = 100; // ~1.7s at 60fps of no pointer movement before the roam resumes (same idea as mesh's IDLE_DECAY_FRAMES)
+    const RIPPLE_SPEED = 12;    // how fast a click-ripple expands, px/frame at REF — scales with canvas size
+    const RIPPLE_WIDTH = 56;    // how thick the bright ring is, at REF — scales with canvas size
+
+    const REF = 2300;        // canvas diagonal (px) this density was calibrated at — a large desktop window (~1900-2000 x 1200)
+    const MAX_STARS = 1800;  // hard cap: the link scan below is O(n^2), so a 5K display doesn't
+                              // carry many thousands of stars and drop frames — logged once if it actually binds
+    let cappedLogged = false;
+
+    let S = null, mx = null, my = null, t2 = 0, lastW = 0, lastH = 0, idleFrames = 1e9, roamOx = 0, roamOy = 0;
+    let ripples = [];
+    function rippleAt(x, y, band, maxR) {
+      let peak = 0;
+      for (let i = 0; i < ripples.length; i++) {
+        const rp = ripples[i];
+        const dist = Math.abs(Math.hypot(x - rp.x, y - rp.y) - rp.r);
+        if (dist >= band) continue;
+        const fade = 1 - rp.r / maxR;
+        if (fade <= 0) continue;
+        const wave = 0.5 + 0.5 * Math.cos(Math.PI * dist / band);
+        if (wave * fade > peak) peak = wave * fade;
+      }
+      return peak;
+    }
+    return {
+      draw: function (ctx, w, h, f) {
+        const k = Math.hypot(w, h) / REF; // linear scale: 1 at REF, >1 on bigger windows
+        const BAND = RIPPLE_WIDTH * k;
+        const maxR = Math.hypot(w, h) * 0.55;
+        for (let i = 0; i < ripples.length; i++) ripples[i].r += RIPPLE_SPEED * k;
+        while (ripples.length && ripples[0].r > maxR) ripples.shift();
+        if (!S || w !== lastW || h !== lastH) {
+          const target = Math.min(MAX_STARS, Math.round(STAR_COUNT * k * k));
+          if (target === MAX_STARS && STAR_COUNT * k * k > MAX_STARS && !cappedLogged) {
+            console.log('[star-map] star count capped at ' + MAX_STARS + ' for a ' + Math.round(w) + 'x' + Math.round(h) + ' canvas');
+            cappedLogged = true;
+          }
+          if (!S) {
+            S = Array.from({ length: target }, function () {
+              return { x: Math.random() * w, y: Math.random() * h, z: 0.3 + Math.random() * 0.7, ph: Math.random() * 6.3 };
+            });
+          } else {
+            // window resized: grow or shrink the field in place instead of discarding it
+            while (S.length < target) S.push({ x: Math.random() * w, y: Math.random() * h, z: 0.3 + Math.random() * 0.7, ph: Math.random() * 6.3 });
+            S.length = target;
+          }
+          lastW = w; lastH = h;
+        }
+        ctx.fillStyle = 'rgba(' + THEME.bgRGB + ',0.5)'; ctx.fillRect(0, 0, w, h);
+        t2 += ROAM_SPEED;
+        idleFrames++;
+        const pointerOn = mx !== null && idleFrames < IDLE_THRESHOLD;
+        if (!pointerOn && idleFrames === IDLE_THRESHOLD && mx !== null) {
+          roamOx = mx - w * (0.5 + 0.35 * Math.sin(t2));
+          roamOy = my - h * (0.5 + 0.3 * Math.sin(t2 * 1.7 + 1));
+        }
+        const roamX = w * (0.5 + 0.35 * Math.sin(t2)) + roamOx;
+        const roamY = h * (0.5 + 0.3 * Math.sin(t2 * 1.7 + 1)) + roamOy;
+        const lx = pointerOn ? mx : roamX;
+        const ly = pointerOn ? my : roamY;
+        const CURSOR = CURSOR_REACH * k;
+        // same batching idea used for the links below: canvas state changes (a fillStyle
+        // string rebuilt and reassigned before every single fillRect) are the expensive part
+        // at this star count, not the per-star math — so bucket stars by quantized alpha and
+        // color, build one Path2D of rects per bucket, then one fillStyle + fill() per bucket
+        const DOT_BUCKETS = 12;
+        const dotPaths = Array.from({ length: DOT_BUCKETS }, function () { return new Path2D(); });
+        const glowPaths = Array.from({ length: DOT_BUCKETS }, function () { return new Path2D(); });
+        for (const s of S) {
+          s.x += DRIFT_SPEED * s.z; if (s.x > w + 4) s.x -= w + 8;
+          const tw = 0.4 + 0.5 * Math.abs(Math.sin(f * 0.02 + s.ph));
+          // attention gradient near the cursor — same idea as mesh's glow: a smooth power
+          // falloff, not a hard-edged circle, brightening both the star itself and its links
+          const dcS = Math.hypot(s.x - lx, s.y - ly);
+          const near = dcS < CURSOR ? Math.pow(1 - dcS / CURSOR, CURSOR_FALLOFF) : 0;
+          const rip = rippleAt(s.x, s.y, BAND, maxR);
+          const glow = Math.max(near, rip);
+          const baseA = tw * s.z;
+          const r = (1.7 + s.z * 2.5 + glow * 3) * k;
+          if (glow > 0.05) {
+            const a = Math.min(1, baseA + glow * 0.6);
+            glowPaths[Math.min(DOT_BUCKETS - 1, Math.floor(a * DOT_BUCKETS))].rect(s.x, s.y, r, r);
+          } else {
+            dotPaths[Math.min(DOT_BUCKETS - 1, Math.floor(baseA * DOT_BUCKETS))].rect(s.x, s.y, r, r);
+          }
+        }
+        for (let bi = 0; bi < DOT_BUCKETS; bi++) {
+          const a = (bi + 0.5) / DOT_BUCKETS;
+          ctx.fillStyle = 'rgba(' + THEME.dot + ',' + a.toFixed(3) + ')';
+          ctx.fill(dotPaths[bi]);
+          ctx.fillStyle = 'rgba(' + THEME.glow + ',' + a.toFixed(3) + ')';
+          ctx.fill(glowPaths[bi]);
+        }
+        const LINK = LINK_REACH * k;
+        ctx.lineWidth = Math.max(0.6, 0.6 * k);
+        // sort-and-sweep broad phase: at up to MAX_STARS the naive i*j/2 pair scan measured
+        // ~63ms/frame (unusable) at 2560x1440. Sorting by x each frame and sweeping forward
+        // only while dx <= LINK finds the exact same link-eligible pairs — sorted order means
+        // dx is monotonic, so the first out-of-range j proves every later j is out of range
+        // too — for a fraction of the distance checks, since LINK is a small slice of the
+        // canvas width. Positions barely move between frames, so this resort is cheap too.
+        const order = S.map(function (_, idx) { return idx; }).sort(function (a, b) { return S[a].x - S[b].x; });
+        // the actual measured cost wasn't the pair math above, it was thousands of individual
+        // strokeStyle-string-then-stroke() calls (one per link) inside the hot zone — canvas
+        // state changes are the expensive part, not the arithmetic. Bucket links into a fixed
+        // number of alpha levels, build one Path2D per bucket, then set strokeStyle and call
+        // stroke() once per bucket — same visual gradient, ~2 orders of magnitude fewer canvas calls
+        const BUCKETS = 16;
+        const linkPaths = Array.from({ length: BUCKETS }, function () { return new Path2D(); });
+        for (let oi = 0; oi < order.length; oi++) {
+          const i = order[oi], Si = S[i];
+          for (let oj = oi + 1; oj < order.length; oj++) {
+            const j = order[oj], Sj = S[j];
+            const dx = Sj.x - Si.x;
+            if (dx > LINK) break; // sorted ascending by x — nothing farther out can be in reach
+            const dy = Si.y - Sj.y, d2 = dx * dx + dy * dy;
+            if (d2 < LINK * LINK) {
+              const midx = (Si.x + Sj.x) / 2, midy = (Si.y + Sj.y) / 2;
+              const dc = Math.hypot(midx - lx, midy - ly);
+              const cursorT = dc < CURSOR ? Math.pow(1 - dc / CURSOR, CURSOR_FALLOFF) : 0;
+              const t = Math.max(cursorT, rippleAt(midx, midy, BAND, maxR));
+              if (t > 0) {
+                const a = t * (1 - Math.sqrt(d2) / LINK) * 0.85;
+                if (a > 0.02) {
+                  const bi = Math.min(BUCKETS - 1, Math.max(0, Math.floor(a / 0.85 * BUCKETS)));
+                  linkPaths[bi].moveTo(Si.x, Si.y); linkPaths[bi].lineTo(Sj.x, Sj.y);
+                }
+              }
+            }
+          }
+        }
+        for (let bi = 0; bi < BUCKETS; bi++) {
+          const a = (bi + 0.5) / BUCKETS * 0.85;
+          ctx.strokeStyle = 'rgba(' + THEME.line + ',' + a.toFixed(3) + ')';
+          ctx.stroke(linkPaths[bi]);
+        }
+        ctx.lineWidth = Math.max(1, 1.1 * k);
+        for (let i = 0; i < ripples.length; i++) {
+          const rp = ripples[i];
+          const fade = 1 - rp.r / maxR;
+          if (fade <= 0 || rp.r < 2) continue;
+          ctx.beginPath();
+          ctx.arc(rp.x, rp.y, rp.r, 0, 6.2832);
+          ctx.strokeStyle = 'rgba(' + THEME.glow + ',' + (0.16 * fade).toFixed(3) + ')';
+          ctx.stroke();
+        }
+      },
+      onmove: function (x, y) { mx = x; my = y; idleFrames = 0; },
+      onclick: function (x, y) {
+        mx = x; my = y; idleFrames = 0;
+        ripples.push({ x: x, y: y, r: 0 });
+        if (ripples.length > 3) ripples.shift();
+      }
+    };
+  }
+});
+// /sketch: star-map
+
+// sketch: wave
+// a 3d particle wave, fully lit at rest — move the cursor to reveal it through a soft mask.
+// click anywhere to send a ripple through the field.
+ANIMS.push({
+  id: 'wave',
+  name: 'wave',
+  group: 'Field',
+  make: function () {
+    // try editing these
+    const MASK_RADIUS_FRAC = 0.20; // how wide the lit pool around the cursor is
+    const FOLLOW_EASE = 0.16;      // how tightly the mask tracks the cursor
+    const IDLE_FRAMES = 120;       // ~2s at 60fps of no movement before it lights back up
+    const MASK_EASE = 0.017;       // how gradually the mask fades in and out
+    const DROP_SPEED = 2;          // how fast a click-ripple races outward — keep it near the wave's own pace
+    const DROP_STRENGTH = 48;      // how high the particles lift at the crest — raise it for a bigger splash
+
+    let mx = null, my = null, lx = 0, ly = 0, amt = 0, idle = 0, moved = false, init = false;
+    let densityCappedLogged = false;
+    let drops = [];
+
+    function drawField(ctx, w, h, f) {
+      // pixel constants below were tuned for an ~860px-wide card; SC rescales them so the
+      // wave's physical footprint matches whatever size canvas it's actually drawn on — the
+      // trig phases use the unscaled grid index, so the wave pattern itself never changes,
+      // only its footprint. Without this it renders as a sparse wedge on a full-bleed canvas.
+      const SC = w / 860;
+      // resolution scales with SC too, separately from footprint: a bigger canvas has more
+      // screen pixels to fill, so the same 84x30 grid reads increasingly sparse as SC grows.
+      // DS grows the grid while shrinking the spacing by the same factor (COLS*SP constant),
+      // so only the density changes, not the footprint SC already fixed. Capped — point count
+      // is COLS*ROWS, i.e. quadratic in DS, and each point is a real canvas draw call, so an
+      // uncapped DS would ~9x the point count (and frame cost) on a 2560+ canvas.
+      const MAX_DS = 1.65;
+      const DS = Math.min(MAX_DS, SC);
+      if (DS === MAX_DS && SC > MAX_DS && !densityCappedLogged) {
+        console.log('[wave] grid density capped at ' + MAX_DS + 'x for a ' + Math.round(w) + 'px-wide canvas');
+        densityCappedLogged = true;
+      }
+      const t = f * 0.016, COLS = Math.round(84 * DS), ROWS = Math.round(30 * DS), SP = 34 / DS;
+      const pebbles = [];
+      for (let k = 0; k < drops.length; k++) {
+        const d = drops[k];
+        const qy = d.y - h * 0.5;
+        const denom = 0.46 * 560 * SC - qy * 0.82;
+        const zDrop = denom !== 0 ? qy * 720 * SC / denom : 0;
+        const sDrop = (560 * SC) / (zDrop * 0.82 + 720 * SC);
+        pebbles.push({ xw: (d.x - w / 2) / (sDrop * SC), zw: zDrop / SC, r: d.age * DROP_SPEED });
+      }
+      for (let j = ROWS - 1; j >= 0; j--) {
+        for (let i = 0; i < COLS; i++) {
+          const xw = (i - COLS / 2) * SP, zw = (j - ROWS / 2) * SP;
+          const x0 = xw * SC, z0 = zw * SC;
+          let y0 = (Math.sin(xw * 0.011 + t) * 30 + Math.cos(zw * 0.016 + t * 0.8) * 24) * SC;
+          y0 += Math.sin(xw * 0.023 - t * 1.3 + zw * 0.008) * 8 * SC; // second harmonic, adds depth
+          for (let k = 0; k < pebbles.length; k++) {
+            const p = pebbles[k];
+            const u = Math.hypot(xw - p.xw, zw - p.zw) - p.r;
+            const sig = 100;
+            const e = Math.exp(-(u * u) / (2 * sig * sig));
+            if (e < 0.01) continue;
+            const fade = Math.max(0, 1 - p.r / 1600);
+            y0 += (1 - (u * u) / (sig * sig)) * e * fade * DROP_STRENGTH * SC;
+          }
+          const cy = y0 * 0.82 + z0 * 0.46, cz = z0 * 0.82 - y0 * 0.28 + 720 * SC;
+          if (cz < 90 * SC) continue;
+          const s = (560 * SC) / cz, px = w / 2 + x0 * s, py = h * 0.5 + cy * s;
+          const a = Math.max(0, Math.min(0.95, 1.7 - cz / (640 * SC)));
+          const r = Math.max(0.7 * SC, 2.8 * s) * 1.3;
+          ctx.fillStyle = 'rgba(' + THEME.line + ',' + a.toFixed(3) + ')';
+          ctx.beginPath(); ctx.arc(px, py, r * 0.5, 0, 6.2832); ctx.fill();
+        }
+      }
+    }
+
+    function applyMask(ctx, w, h, strength) {
+      if (strength <= 0.002) return;
+      const R = Math.min(w, h) * MASK_RADIUS_FRAC;
+      const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, R);
+      g.addColorStop(0, 'rgba(' + THEME.bgRGB + ',0)');
+      g.addColorStop(0.6, 'rgba(' + THEME.bgRGB + ',' + (0.5 * strength).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(' + THEME.bgRGB + ',' + (0.92 * strength).toFixed(3) + ')');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    return {
+      draw: function (ctx, w, h, f) {
+        ctx.fillStyle = THEME.bg; ctx.fillRect(0, 0, w, h);
+        drawField(ctx, w, h, f);
+        for (let k = 0; k < drops.length; k++) drops[k].age++;
+        while (drops.length && drops[0].age * DROP_SPEED > 1600) drops.shift();
+
+        if (!init) { lx = w / 2; ly = h / 2; init = true; }
+        // the mask tracks the cursor directly (a tight ease, same idiom as the other mask
+        // variants) rather than lagging behind it — no comet trail, no stretch, just a pool of light
+        if (mx !== null) { lx += (mx - lx) * FOLLOW_EASE; ly += (my - ly) * FOLLOW_EASE; moved = true; }
+        idle++;
+        // idle is only zeroed from a fresh onmove call, not merely by mx being set, so a
+        // cursor that's stopped moving over the canvas decays the same as one that left it
+        let target = moved ? 1 : 0;
+        if (moved && idle > IDLE_FRAMES) target = 0;
+        amt += (target - amt) * MASK_EASE;
+        if (moved && idle > IDLE_FRAMES && amt < 0.02) moved = false;
+
+        applyMask(ctx, w, h, amt);
+      },
+      onmove: function (x, y) { mx = x; my = y; idle = 0; },
+      onclick: function (x, y) {
+        drops.push({ x: x, y: y, age: 0 });
+        if (drops.length > 4) drops.shift();
+      }
+    };
+  }
+});
+// /sketch: wave
+
+// sketch: flock
+// three local rules, no leader — order emerges bottom-up.
+ANIMS.push({
+  id: 'flock',
+  name: 'flock',
+  group: 'Creatures',
+  make: function () {
+    // try editing these — baseline values at REF below; every distance and the flock size
+    // itself scale with the actual canvas, so a bigger window reads the same as a small one
+    const BOIDS = 110;             // flock size at REF — scales with canvas area (bigger window = more boids)
+    const PERCEPTION_RADIUS = 92;  // how far a boid senses neighbors, in px at REF — scales with canvas size
+    const SEPARATION_RADIUS = 31;  // how close before a boid steers away, in px at REF — scales with canvas size
+    const MAX_SPEED = 2.6;         // speed cap, in px/frame at REF — scales with canvas size
+    const TRAIL = 7;               // how many frames of travel each streak draws behind a boid
+    const FADE = 0.055;            // how fast old streaks wash out — lower leaves longer trails
+
+    // how big a flock gets is mostly perception radius: it sets how far order can reach, so
+    // widening it grows the formations. On its own that only spreads the same boids over more
+    // sky — thinner, not bigger — so the count goes up with it to hold the spacing inside a
+    // group, and the separation radius grows in step so a bigger group isn't a packed one.
+    const REF = 1100;       // canvas diagonal (px) these numbers were tuned at — the ~950px design card
+    const MAX_BOIDS = 900;  // hard cap: the neighbor scan below is O(n^2), so a 5K display doesn't
+                             // spawn 3000+ boids and drop frames — logged once if it actually binds
+    let cappedLogged = false;
+
+    let B = null, lastW = 0, lastH = 0;
+    return {
+      draw: function (ctx, w, h, f) {
+        const k = Math.hypot(w, h) / REF; // linear scale: 1 at REF, >1 on bigger windows
+        if (!B || w !== lastW || h !== lastH) {
+          const target = Math.min(MAX_BOIDS, Math.round(BOIDS * k * k));
+          if (target === MAX_BOIDS && BOIDS * k * k > MAX_BOIDS && !cappedLogged) {
+            console.log('[flock] boid count capped at ' + MAX_BOIDS + ' for a ' + Math.round(w) + 'x' + Math.round(h) + ' canvas');
+            cappedLogged = true;
+          }
+          if (!B) {
+            B = Array.from({ length: target }, function () {
+              const a = Math.random() * 6.3;
+              return { x: Math.random() * w, y: Math.random() * h, vx: Math.cos(a) * 1.6, vy: Math.sin(a) * 1.6 };
+            });
+          } else {
+            // window resized: grow or shrink the flock in place rather than discarding
+            // everyone's current position and velocity, which is what a full rebuild would do
+            while (B.length < target) {
+              const a = Math.random() * 6.3;
+              B.push({ x: Math.random() * w, y: Math.random() * h, vx: Math.cos(a) * 1.6, vy: Math.sin(a) * 1.6 });
+            }
+            B.length = target;
+          }
+          lastW = w; lastH = h;
+        }
+        const PERC = PERCEPTION_RADIUS * k, SEP = SEPARATION_RADIUS * k;
+        const SPEED = MAX_SPEED * k, MIN_SPEED = 1.0 * k;
+        ctx.fillStyle = 'rgba(' + THEME.bgRGB + ',' + FADE + ')'; ctx.fillRect(0, 0, w, h);
+        for (const b of B) {
+          let cx = 0, cy = 0, ax = 0, ay = 0, sx = 0, sy = 0, n = 0;
+          for (const o of B) {
+            if (o === b) continue;
+            const dx = o.x - b.x, dy = o.y - b.y, d2 = dx * dx + dy * dy;
+            if (d2 < PERC * PERC) {
+              cx += o.x; cy += o.y; ax += o.vx; ay += o.vy; n++;
+              if (d2 < SEP * SEP && d2 > 0.01) { const d = Math.sqrt(d2); sx -= dx / d; sy -= dy / d; }
+            }
+          }
+          if (n > 0) {
+            b.vx += (cx / n - b.x) * 0.0038 + (ax / n - b.vx) * 0.055 + sx * 0.06;
+            b.vy += (cy / n - b.y) * 0.0038 + (ay / n - b.vy) * 0.055 + sy * 0.06;
+          }
+          const sp = Math.hypot(b.vx, b.vy) || 1, cl = Math.max(MIN_SPEED, Math.min(SPEED, sp));
+          b.vx = b.vx / sp * cl; b.vy = b.vy / sp * cl;
+          b.x += b.vx; b.y += b.vy;
+          if (b.x < 0) b.x += w; if (b.x > w) b.x -= w;
+          if (b.y < 0) b.y += h; if (b.y > h) b.y -= h;
+          ctx.strokeStyle = 'rgba(' + THEME.line + ',0.62)'; ctx.lineWidth = Math.max(1.2, k * 1.35);
+          ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - b.vx * TRAIL, b.y - b.vy * TRAIL); ctx.stroke();
+        }
+      }
+    };
+  }
+});
+// /sketch: flock
+
+// sketch: eel
+// spine and ribs undulating like a swimming eel — get close and it darts away, then settles
+// back to cruising. The lateral spine wave runs every frame, so it always reads as swimming.
+ANIMS.push({
+  id: 'eel',
+  name: 'eel',
+  group: 'Creatures',
+  make: function () {
+    // try editing these — baseline values at REF below; segment spacing, rib length, line
+    // width and both speeds scale with the actual canvas, so the eel keeps the same shape
+    // and the same body length relative to the window at any size
+    const SEGMENTS = 28;               // spine length in segments — more = longer eel (count stays fixed; segment spacing below carries the size instead)
+    const CRUISE_SPEED = 1.9;          // normal swimming speed, in px/frame at REF — scales with canvas size
+    const BURST_SPEED = 5.4;           // speed while startled, in px/frame at REF — scales with canvas size
+    const STARTLE_RADIUS_FRAC = 0.24;  // how close the cursor has to get to spook it — already a fraction of the canvas, no scaling needed
+
+    const REF = 1100; // canvas diagonal (px) these numbers were tuned at — the ~950px design card
+
+    function angleDiff(target, cur) {
+      let d = target - cur;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return d;
+    }
+
+    let S = null, headA = 0, speed = CRUISE_SPEED, flash = 0;
+    let mx = null, my = null, scareT = 0, scareA = 0;
+
+    function stepBody(w, h, f, k) {
+      const head = S[0];
+      head.x += Math.cos(headA) * speed;
+      head.y += Math.sin(headA) * speed;
+      const M = Math.min(w, h) * 0.14;
+      if (head.x < M && Math.cos(headA) < 0) headA = Math.PI - headA;
+      if (head.x > w - M && Math.cos(headA) > 0) headA = Math.PI - headA;
+      if (head.y < M && Math.sin(headA) < 0) headA = -headA;
+      if (head.y > h - M && Math.sin(headA) > 0) headA = -headA;
+      const L = 8 * k;
+      for (let i = 1; i < S.length; i++) {
+        const p = S[i], q = S[i - 1];
+        let dx = p.x - q.x, dy = p.y - q.y, d = Math.hypot(dx, dy);
+        if (d > w / 2 || d < 0.01) { p.x = q.x - Math.cos(headA) * L; p.y = q.y - Math.sin(headA) * L; dx = p.x - q.x; dy = p.y - q.y; d = L; }
+        const wave = Math.sin(f * 0.14 - i * 0.5) * Math.min(1, i / 6) * 3.4 * k;
+        const nx = -dy / d, ny = dx / d;
+        p.x = q.x + dx / d * L + nx * wave * 0.14;
+        p.y = q.y + dy / d * L + ny * wave * 0.14;
+      }
+    }
+
+    function drawBody(ctx, k) {
+      ctx.strokeStyle = 'rgba(' + THEME.glow + ',0.72)'; ctx.lineWidth = Math.max(1.4, 1.4 * k);
+      ctx.beginPath(); ctx.moveTo(S[0].x, S[0].y);
+      for (let i = 1; i < S.length; i++) {
+        if (Math.hypot(S[i].x - S[i - 1].x, S[i].y - S[i - 1].y) > 40 * k) { ctx.moveTo(S[i].x, S[i].y); continue; }
+        ctx.lineTo(S[i].x, S[i].y);
+      }
+      ctx.stroke();
+      ctx.lineWidth = Math.max(0.8, 0.8 * k);
+      for (let i = 2; i < S.length - 1; i += 2) {
+        const a = S[i - 1], b = S[i + 1];
+        const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+        if (d > 40 * k) continue;
+        const rib = (7 * (1 - i / S.length) + 1.5) * k;
+        ctx.strokeStyle = 'rgba(' + THEME.line + ',' + (0.45 * (1 - i / S.length) + 0.1).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.moveTo(S[i].x - dy / d * rib, S[i].y + dx / d * rib);
+        ctx.lineTo(S[i].x + dy / d * rib, S[i].y - dx / d * rib);
+        ctx.stroke();
+      }
+      if (flash > 0.03) {
+        ctx.strokeStyle = 'rgba(' + THEME.line + ',' + (flash * 0.5).toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(S[0].x, S[0].y, (6 + (1 - flash) * 30) * k, 0, 6.2832); ctx.stroke();
+      }
+      const hs = (3 + flash * 4) * k;
+      ctx.fillStyle = 'rgba(' + THEME.dot + ',0.9)';
+      ctx.fillRect(S[0].x - hs / 2, S[0].y - hs / 2, hs, hs);
+      flash *= 0.92;
+    }
+
+    return {
+      draw: function (ctx, w, h, f) {
+        const k = Math.hypot(w, h) / REF; // linear scale: 1 at REF, >1 on bigger windows
+        if (!S) S = Array.from({ length: SEGMENTS }, function (_, i) { return { x: w / 2 - i * 8 * k, y: h / 2 }; });
+        ctx.fillStyle = 'rgba(' + THEME.bgRGB + ',0.12)'; ctx.fillRect(0, 0, w, h);
+        const R = Math.min(w, h) * STARTLE_RADIUS_FRAC, head = S[0];
+        if (mx !== null) {
+          const d = Math.hypot(head.x - mx, head.y - my);
+          if (d < R && scareT <= 0) { scareT = 42; scareA = Math.atan2(head.y - my, head.x - mx); flash = 1; }
+          else if (d < R * 0.55) { scareT = Math.max(scareT, 30); scareA = Math.atan2(head.y - my, head.x - mx); }
+        }
+        const CRUISE = CRUISE_SPEED * k, BURST = BURST_SPEED * k;
+        if (scareT > 0) { headA += angleDiff(scareA, headA) * 0.3; speed += (BURST - speed) * 0.22; scareT--; }
+        else { headA += Math.sin(f * 0.017) * 0.03 + Math.sin(f * 0.007 + 2) * 0.02; speed += (CRUISE - speed) * 0.05; }
+        stepBody(w, h, f, k);
+        drawBody(ctx, k);
+      },
+      onmove: function (x, y) { mx = x; my = y; }
+    };
+  }
+});
+// /sketch: eel
+
+// sketch: bioluminescent
+// glide the cursor through the water — plankton light up in a bioluminescent wake. Dim
+// plankton drift at random across the whole canvas; your cursor leaves a trail of light
+// through them as it passes, which slowly fades. Your movement is the brush.
+ANIMS.push({
+  id: 'bioluminescent',
+  name: 'bioluminescent',
+  group: 'Creatures',
+  make: function () {
+    // try editing these — baseline values at REF below; particle count and every pixel
+    // distance scale with the actual canvas, so the field reads equally full at any window size
+    const PARTICLE_COUNT = 230;  // how many plankton, at REF — scales with canvas area (bigger window = more particles)
+    const WAKE_RADIUS = 55;      // pixel distance a particle lights up around the cursor, at REF — scales with canvas size
+    const TRIGGER_SPEED = 0.8;   // minimum cursor speed (px/frame) needed to trigger glow — NOT
+                                  // canvas-scaled: a real mouse's px/frame speed doesn't grow with
+                                  // window size, so scaling this up would make the wake harder to
+                                  // trigger on big screens instead of easier
+    const GLOW_DECAY = 0.975;    // per-frame glow falloff — lower = shorter-lived trail (not canvas-scaled)
+
+    const REF = 1100;           // canvas diagonal (px) these numbers were tuned at — the ~950px design card
+    const MAX_PARTICLES = 1200; // hard cap so a 5K display doesn't spawn 2000+ particles and drop frames
+    const MIN_PARTICLES = 280;  // floor for small canvases, so a phone doesn't end up with a handful of dots
+    const MIN_DOT_SCALE = 1.3;  // dot-size floor on small canvases, a touch above the wake's 1x floor below — a resting dot at 1x reads as barely-there on a phone
+    let cappedLogged = false;
+
+    let P = null, mx = null, my = null, pmx = null, pmy = null, t4 = 0, lastW = 0, lastH = 0;
+    return {
+      draw: function (ctx, w, h, f) {
+        const k = Math.hypot(w, h) / REF; // linear scale: 1 at REF, >1 on bigger windows
+        // the wake stops shrinking below REF — under about a pixel of radius it gets too small
+        // to reliably trigger. Dots use their own floor just below, a little higher: at the
+        // wake's 1x floor a resting dot reads as barely-there on a phone-sized canvas
+        const kWake = Math.max(1, k);
+        const kDot = Math.max(MIN_DOT_SCALE, k);
+        t4 += 0.006;
+        if (!P || w !== lastW || h !== lastH) {
+          const target = Math.max(MIN_PARTICLES, Math.min(MAX_PARTICLES, Math.round(PARTICLE_COUNT * k * k)));
+          if (target === MAX_PARTICLES && PARTICLE_COUNT * k * k > MAX_PARTICLES && !cappedLogged) {
+            console.log('[bioluminescent] particle count capped at ' + MAX_PARTICLES + ' for a ' + Math.round(w) + 'x' + Math.round(h) + ' canvas');
+            cappedLogged = true;
+          }
+          if (!P) P = [];
+          // uniform random across the whole canvas — no clustering, no placement pattern
+          while (P.length < target) P.push({ x: Math.random() * w, y: Math.random() * h, glow: 0, ph: Math.random() * 6.3 });
+          P.length = target;
+          lastW = w; lastH = h;
+        }
+        ctx.fillStyle = 'rgba(' + THEME.bgRGB + ',0.12)'; ctx.fillRect(0, 0, w, h);
+        let cx, cy;
+        if (mx === null) { cx = w * (0.5 + 0.36 * Math.sin(t4 * 1.2)); cy = h * (0.5 + 0.3 * Math.sin(t4 * 1.9 + 0.5)); }
+        else { cx = mx; cy = my; }
+        const sp = pmx === null ? 2 : Math.hypot(cx - pmx, cy - pmy);
+        const WAKE_R = WAKE_RADIUS * kWake;
+        for (const p of P) {
+          p.x += Math.sin(p.y * 0.02 + t4 * 3 + p.ph) * 0.18;
+          p.y += Math.cos(p.x * 0.017 + t4 * 2) * 0.15 - 0.05;
+          if (p.y < 0) p.y += h; if (p.x < 0) p.x += w; if (p.x > w) p.x -= w; if (p.y > h) p.y -= h;
+          if (sp > TRIGGER_SPEED) {
+            const d = Math.hypot(p.x - cx, p.y - cy);
+            if (d < WAKE_R) p.glow = Math.min(1, p.glow + (1 - d / WAKE_R) * Math.min(0.5, sp * 0.05));
+          }
+          p.glow *= GLOW_DECAY;
+          const a = 0.07 + p.glow * 0.8;
+          const r = (1 + p.glow * 2.2) * kDot;
+          ctx.fillStyle = p.glow > 0.05
+            ? 'rgba(' + THEME.glow + ',' + a.toFixed(3) + ')'
+            : 'rgba(' + THEME.bird + ',' + a.toFixed(3) + ')';
+          ctx.fillRect(p.x, p.y, r, r);
+        }
+        pmx = cx; pmy = cy;
+      },
+      onmove: function (x, y) { mx = x; my = y; }
+    };
+  }
+});
+// /sketch: bioluminescent
+
+// sketch: murmuration-real
+// true local-neighbor boids: spatial-hash grid + per-bird delayed alignment, so turns
+// propagate as a wave rather than the whole cloud swinging in sync. No attractor, no field.
+ANIMS.push({
+  id: 'murmuration-real',
+  name: 'murmuration',
+  group: 'Creatures',
+  make: function () {
+    // try editing these
+    const BIRDS = 1500;                 // how many birds in the flock
+    const NEIGHBOR_RADIUS_FRAC = 0.05;  // how far a bird can see, as a fraction of the screen's short side
+    const IMPULSE_EVERY = 90;           // roughly how many frames between spontaneous turn impulses
+    const SPEED_FRAC = 0.0021;          // cruising speed, as a fraction of the screen's short side per frame
+
+    // quieter tuning knobs — the shape and mood of the flock lives here
+    const CELL_TAKE = 3;           // birds sampled per grid cell (see the scan note below)
+    const RING = 5;                // frames of velocity history kept per bird (> the largest delay below)
+    const MAX_LATENCY = 4;         // each bird reacts to a neighbor's heading from 1-4 frames back, picked once per bird
+    const ALIGN_W = 0.12, COHESION_W = 0.002, SEPARATION_W = 0.8, DRIFT_W = 0.006;
+    const SEP_RADIUS_FRAC = 0.32;  // separation only fires this close, as a fraction of the perception radius
+    const MAX_FORCE_FRAC = 0.16;   // steering cap per frame, as a fraction of cruising speed — inertia lives here
+    const SEP_MAX = 1.6;           // ceiling on the separation term alone, in maxForces (see the note where it is applied)
+    const HOME_FRAC = 0.34;        // the flock's own working radius, as a fraction of the screen's short side
+    const HOME_W = 1.8;            // how hard a bird past that radius is reeled back, in maxForces
+    const HOME_MARGIN = 1.28;      // how much clear canvas to keep outside that radius, as a multiple of it
+    // grid cells are HALF the perception radius and the scan covers the 5x5 block around a
+    // bird, own cell first, nearest rings next — so the block always spans the full
+    // perception circle. The take is capped PER CELL rather than as one running total: a
+    // single crowded cell would otherwise fill the whole budget by itself and the scan would
+    // never reach its neighbors, so a bird in a dense lobe would only ever "see" whoever
+    // shares its exact grid square. That reads as a grid of mini-flocks instead of one flock.
+    const CELL_OFFSETS = [
+      [0, 0],
+      [-1, 0], [1, 0], [0, -1], [0, 1],
+      [-1, -1], [1, -1], [-1, 1], [1, 1],
+      [-2, 0], [2, 0], [0, -2], [0, 2],
+      [-2, -1], [2, -1], [-2, 1], [2, 1], [-1, -2], [1, -2], [-1, 2], [1, 2],
+      [-2, -2], [2, -2], [-2, 2], [2, 2]
+    ];
+
+    let birds = null, N = 0;
+    let radius = 0, cellSize = 0, cols = 0, rows = 0;
+    let cellCounts = new Int32Array(0), cellStart = new Int32Array(0), cellCursor = new Int32Array(0);
+    let bucket = null, ringVx = null, ringVy = null;
+    let nextImpulseAt = IMPULSE_EVERY;
+    let driftAngle = Math.random() * Math.PI * 2, driftTurn = 0;
+    let flockX = 0, flockY = 0;
+
+    function initBirds(w, h) {
+      N = BIRDS;
+      const speed = Math.min(w, h) * SPEED_FRAC;
+      const originX = w * 0.5, originY = h * 0.45, heading0 = Math.random() * Math.PI * 2;
+      birds = new Array(N);
+      ringVx = new Float32Array(RING * N);
+      ringVy = new Float32Array(RING * N);
+      bucket = new Int32Array(N);
+      flockX = originX; flockY = originY;
+      for (let i = 0; i < N; i++) {
+        // spawned already flying together, tightly aligned in heading and speed, like a flock
+        // already in flight — not a gas that needs time to condense into one. Individual
+        // variation still exists (gain/latency/rMul below) but starts subtle and lets the
+        // flock stay one connected mass instead of a few birds peeling off before it can gel.
+        const a = heading0 + (Math.random() - 0.5) * 0.08;
+        const sp = speed * (0.95 + Math.random() * 0.1);
+        const vx = Math.cos(a) * sp, vy = Math.sin(a) * sp;
+        const b = {
+          x: originX + (Math.random() + Math.random() - 1) * w * 0.22,
+          y: originY + (Math.random() + Math.random() - 1) * h * 0.16,
+          vx: vx, vy: vy, cell: 0,
+          latency: 1 + ((Math.random() * MAX_LATENCY) | 0),
+          gain: 0.8 + Math.random() * 0.4,
+          rMul: 0.82 + Math.random() * 0.18,
+          maxSpd: speed * (1.08 + Math.random() * 0.14),
+          minSpd: speed * (0.78 + Math.random() * 0.12),
+          size: 1.1 + Math.random() * 0.5,
+          alpha: 0.5 + Math.random() * 0.35
+        };
+        birds[i] = b;
+        for (let r = 0; r < RING; r++) { ringVx[r * N + i] = vx; ringVy[r * N + i] = vy; }
+      }
+    }
+
+    // uniform grid over the canvas, cell size HALF the perception radius (see CELL_OFFSETS
+    // note above), rebuilt fresh each frame as flat typed arrays (a counting sort into
+    // `bucket`) — no per-frame allocation once the canvas size, and so the cell count, has settled.
+    function rebuildGrid(w, h) {
+      radius = Math.min(w, h) * NEIGHBOR_RADIUS_FRAC;
+      cellSize = Math.max(6, radius / 2);
+      cols = Math.max(1, Math.ceil(w / cellSize));
+      rows = Math.max(1, Math.ceil(h / cellSize));
+      const cellCount = cols * rows;
+      if (cellCounts.length !== cellCount) {
+        cellCounts = new Int32Array(cellCount);
+        cellStart = new Int32Array(cellCount);
+        cellCursor = new Int32Array(cellCount);
+      } else {
+        cellCounts.fill(0);
+      }
+      let sx = 0, sy = 0;
+      for (let i = 0; i < N; i++) {
+        const b = birds[i];
+        sx += b.x; sy += b.y;
+        let cx = (b.x / cellSize) | 0; if (cx < 0) cx = 0; else if (cx >= cols) cx = cols - 1;
+        let cy = (b.y / cellSize) | 0; if (cy < 0) cy = 0; else if (cy >= rows) cy = rows - 1;
+        b.cell = cy * cols + cx;
+        cellCounts[b.cell]++;
+      }
+      flockX = sx / N; flockY = sy / N;
+      let acc = 0;
+      for (let c = 0; c < cellCount; c++) { cellStart[c] = acc; cellCursor[c] = acc; acc += cellCounts[c]; }
+      for (let i = 0; i < N; i++) { const c = birds[i].cell; bucket[cellCursor[c]++] = i; }
+    }
+
+    // one flock-wide heading that itself wanders (a slow, mean-reverting random walk) — the
+    // macro travel/turn/climb. Kept weak relative to the local rules below, so it biases the
+    // flock's course over time without acting like a target any bird flies toward.
+    function macroDrift(w, h) {
+      driftTurn += (Math.random() - 0.5) * 0.006 - driftTurn * 0.02;
+      driftAngle += driftTurn;
+      const s = Math.min(w, h) * SPEED_FRAC * 0.5;
+      return { x: Math.cos(driftAngle) * s, y: Math.sin(driftAngle) * s };
+    }
+
+    // pick a bird near the flock's silhouette, in a random direction, and nudge its heading —
+    // plus a falloff nudge to whoever is already near it — then let alignment carry that new
+    // heading through the rest of the flock, frame by frame, as a wave.
+    function applyImpulse() {
+      const theta = Math.random() * Math.PI * 2, dxu = Math.cos(theta), dyu = Math.sin(theta);
+      let seed = 0, best = -Infinity;
+      for (let i = 0; i < N; i++) {
+        const b = birds[i], proj = (b.x - flockX) * dxu + (b.y - flockY) * dyu;
+        if (proj > best) { best = proj; seed = i; }
+      }
+      const sB = birds[seed];
+      const turn = (Math.random() < 0.5 ? -1 : 1) * (0.10 + Math.random() * 0.20);
+      const reach = radius * 5, reach2 = reach * reach;
+      for (let i = 0; i < N; i++) {
+        const b = birds[i], dx = b.x - sB.x, dy = b.y - sB.y, d2 = dx * dx + dy * dy;
+        if (d2 > reach2) continue;
+        const a = turn * (1 - Math.sqrt(d2) / reach) * (i === seed ? 1 : 0.7);
+        const ca = Math.cos(a), sa = Math.sin(a), vx = b.vx, vy = b.vy;
+        b.vx = vx * ca - vy * sa;
+        b.vy = vx * sa + vy * ca;
+      }
+    }
+
+    function stepFlock(w, h, f) {
+      rebuildGrid(w, h);
+      const speed = Math.min(w, h) * SPEED_FRAC;
+      const maxForce = speed * MAX_FORCE_FRAC;
+      const home = Math.min(w, h) * HOME_FRAC;
+      // the leash is anchored on the flock's own center of mass, EXCEPT that the anchor is
+      // held inside the canvas. While the flock is on screen the anchor is just the centroid,
+      // so the leash only ever touches birds that have strayed off the mass. Once the flock
+      // itself wanders out, the anchor stops at the edge and the same leash reels the whole
+      // body back — one mechanism for "don't lose stragglers" and "stay on screen" both, and
+      // no rectangular wall for birds to bounce off.
+      // holding the anchor more than a full `home` in from each edge is what makes this a
+      // containment and not just a leash: the free zone always sits on canvas with room to
+      // spare, so a bird can only reach the edge by first crossing into the pull, and the
+      // spare margin is what it overshoots into while its turn comes around.
+      const inset = home * HOME_MARGIN;
+      const homeX = Math.min(w - inset, Math.max(inset, flockX));
+      const homeY = Math.min(h - inset, Math.max(inset, flockY));
+      const drift = macroDrift(w, h);
+      const ringSlot = f % RING;
+
+      for (let i = 0; i < N; i++) {
+        const b = birds[i];
+        let cx = (b.x / cellSize) | 0; if (cx < 0) cx = 0; else if (cx >= cols) cx = cols - 1;
+        let cy = (b.y / cellSize) | 0; if (cy < 0) cy = 0; else if (cy >= rows) cy = rows - 1;
+        const r2 = radius * radius * b.rMul * b.rMul;
+        const sepR = radius * b.rMul * SEP_RADIUS_FRAC, sepR2 = sepR * sepR;
+        const histBase = (((ringSlot - b.latency) % RING + RING) % RING) * N;
+
+        // gather from the 5x5 cells around this bird, own cell first, nearest rings next,
+        // taking at most CELL_TAKE from each — evenly strided through the cell so a dense
+        // cell contributes a spread of its occupants rather than whichever few sort first.
+        let count = 0, alVx = 0, alVy = 0, coX = 0, coY = 0, sepX = 0, sepY = 0;
+        for (let o = 0; o < 25; o++) {
+          const gx = cx + CELL_OFFSETS[o][0], gy = cy + CELL_OFFSETS[o][1];
+          if (gx < 0 || gx >= cols || gy < 0 || gy >= rows) continue;
+          const c = gy * cols + gx, cn = cellCounts[c];
+          if (cn === 0) continue;
+          const base = cellStart[c], step = cn > CELL_TAKE ? (cn / CELL_TAKE) | 0 : 1;
+          for (let t = 0, p = base + (f + i) % step; t < CELL_TAKE && p < base + cn; t++, p += step) {
+            const j = bucket[p];
+            if (j === i) continue;
+            const ob = birds[j];
+            const dx = ob.x - b.x, dy = ob.y - b.y, d2 = dx * dx + dy * dy;
+            if (d2 === 0 || d2 > r2) continue;
+            count++;
+            // alignment reads j's velocity from this bird's own personal delay, not j's
+            // current heading — that lag is what lets a turn take real time to cross the flock
+            alVx += ringVx[histBase + j]; alVy += ringVy[histBase + j];
+            coX += ob.x; coY += ob.y;
+            // separation is crowding PRESSURE, so unlike alignment and cohesion — which are
+            // means, and so unbiased when we only sample some of the cell — it has to be
+            // scaled back up by `step`: each bird we looked at stands in for that many. Skip
+            // it and packing a lobe tighter silently weakens the one force meant to resist,
+            // so the flock implodes. The 1/d falloff is the other half: a flat push carries
+            // no sense of "how close", cancels out in a crowd, and sets no spacing at all.
+            if (d2 < sepR2) {
+              const d = Math.sqrt(d2), push = (sepR / d - 1) * step;
+              sepX -= dx / d * push; sepY -= dy / d * push;
+            }
+          }
+        }
+
+        let stx = 0, sty = 0;
+        if (count > 0) {
+          stx = (alVx / count - b.vx) * ALIGN_W + (coX / count - b.x) * COHESION_W;
+          sty = (alVy / count - b.vy) * ALIGN_W + (coY / count - b.y) * COHESION_W;
+        }
+
+        // the leash: nothing at all inside the flock's own working radius, then a pull back
+        // toward the mass that grows with how far out a bird has strayed. It is what lets a
+        // lobe tear off and still find its way home — local cohesion alone cannot do that,
+        // because once two lobes drift more than a perception radius apart neither can see
+        // the other and the split is permanent.
+        const hx = homeX - b.x, hy = homeY - b.y, hd = Math.hypot(hx, hy) || 1e-6;
+        if (hd > home) {
+          const nx = hx / hd, ny = hy / hd;
+          // ease the leash off for a bird already flying home, so it arrives and rejoins
+          // instead of overshooting the anchor and swinging back — a plain spring would set
+          // the whole flock orbiting one point, which is the look this is trying to avoid.
+          const closing = Math.max(0, 1 - (b.vx * nx + b.vy * ny) / speed);
+          const pull = Math.min(2.5, (hd - home) / home) * maxForce * HOME_W * closing;
+          stx += nx * pull; sty += ny * pull;
+        }
+
+        stx += (drift.x - b.vx) * DRIFT_W;
+        sty += (drift.y - b.vy) * DRIFT_W;
+
+        stx *= b.gain; sty *= b.gain;
+        const sMag = Math.sqrt(stx * stx + sty * sty);
+        if (sMag > maxForce) { const k = maxForce / sMag; stx *= k; sty *= k; }
+
+        // separation is added AFTER that cap, and keeps its full 1/d gradient. Both details
+        // matter. Inside the cap it drowns out alignment, cohesion and the leash, because a
+        // crowded bird's separation term is far larger than any of them and normalizing the
+        // sum leaves nothing else. Flattened to a constant push it stops being a spacing rule
+        // at all: with no gradient there is no distance it settles at, so the flock jams into
+        // an even lattice and drifts as one rigid sheet. Its own cap is deliberately loose —
+        // it exists to stop a near-collision from producing an absurd one-frame swerve, not
+        // to ration separation.
+        let spx = sepX * SEPARATION_W, spy = sepY * SEPARATION_W;
+        const spMag = Math.sqrt(spx * spx + spy * spy), spCap = maxForce * SEP_MAX;
+        if (spMag > spCap) { const k = spCap / spMag; spx *= k; spy *= k; }
+        stx += spx; sty += spy;
+
+        const oldVx = b.vx, oldVy = b.vy;
+        let nvx = oldVx + stx, nvy = oldVy + sty;
+        const sp = Math.sqrt(nvx * nvx + nvy * nvy) || 1e-6;
+        if (sp > b.maxSpd) { const k = b.maxSpd / sp; nvx *= k; nvy *= k; }
+        else if (sp < b.minSpd) { const k = b.minSpd / sp; nvx *= k; nvy *= k; }
+
+        // push this frame's pre-update velocity into history AFTER reading from it above (for
+        // every other bird's alignment this frame) and BEFORE overwriting it below — this is
+        // the double buffer: nobody ever reads a neighbor's in-progress, still-being-computed velocity
+        ringVx[ringSlot * N + i] = oldVx; ringVy[ringSlot * N + i] = oldVy;
+        b.vx = nvx; b.vy = nvy;
+      }
+
+      for (let i = 0; i < N; i++) { const b = birds[i]; b.x += b.vx; b.y += b.vy; }
+
+      if (--nextImpulseAt <= 0) {
+        applyImpulse();
+        nextImpulseAt = IMPULSE_EVERY * (0.6 + Math.random() * 0.8);
+      }
+    }
+
+    return {
+      draw: function (ctx, w, h, f) {
+        if (!birds) initBirds(w, h);
+        stepFlock(w, h, f);
+        ctx.fillStyle = THEME.bg; ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < N; i++) {
+          const b = birds[i];
+          ctx.fillStyle = 'rgba(' + THEME.bird + ',' + b.alpha.toFixed(2) + ')';
+          ctx.fillRect(b.x - b.size * 0.5, b.y - b.size * 0.5, b.size, b.size);
+        }
+      }
+    };
+  }
+});
+// /sketch: murmuration-real
+  </script>
+  <script defer src="https://umami.guyon.dev/script.js" data-website-id="861ab94e-3bc4-46cb-a2ba-a58fd604fedf"></script>
+  <script type="module" src="machine.js"></script>
+</body>
+</html>

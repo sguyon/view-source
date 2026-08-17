@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The slash from the /sg monogram, drawn as geometry so it survives 16px
+       and needs no font. Flips with the browser's colour scheme. -->
+  <style>
+    @media (prefers-color-scheme: light) {
+      .tile { fill: #f4f1ea }
+      .mark { stroke: #21694a }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="6" fill="#0d0d0f"/>
+  <line class="mark" x1="16" y1="24.5" x2="16" y2="7.5" stroke="#5aaf96"
+        stroke-width="5.4" stroke-linecap="round" transform="rotate(16 16 16)"/>
+</svg>
